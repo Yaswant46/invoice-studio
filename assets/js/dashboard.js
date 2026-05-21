@@ -67,15 +67,28 @@
   function populateProfileSwitcher() {
     var profiles = Store.listProfiles();
     var active = Store.getActiveProfile();
-    els.profileSwitcher.innerHTML = profiles.map(function (p) {
+    var opts = profiles.map(function (p) {
       return '<option value="' + p.id + '">' + esc(p.name) + '</option>';
-    }).join('');
+    });
+    opts.push('<option disabled>──────────</option>');
+    opts.push('<option value="__new__">+ New profile…</option>');
+    opts.push('<option value="__manage__">Manage profiles…</option>');
+    els.profileSwitcher.innerHTML = opts.join('');
     if (active) els.profileSwitcher.value = active.id;
   }
 
   function bindEvents() {
     els.profileSwitcher.addEventListener('change', function () {
-      Store.setActiveProfile(els.profileSwitcher.value);
+      var v = els.profileSwitcher.value;
+      if (v === '__new__') {
+        location.href = 'settings.html?new=profile';
+        return;
+      }
+      if (v === '__manage__') {
+        location.href = 'settings.html';
+        return;
+      }
+      Store.setActiveProfile(v);
       paint();
     });
     els.showAllProfiles.addEventListener('change', function () {

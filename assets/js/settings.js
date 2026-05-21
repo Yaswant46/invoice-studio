@@ -77,6 +77,22 @@
     renderProfiles();
     renderClients();
     renderStorageSize();
+
+    // Auto-open modals when arrived via ?new=profile or ?new=client.
+    var qs = new URLSearchParams(location.search);
+    var newWhat = qs.get('new');
+    if (newWhat === 'profile') openProfileModal(null);
+    else if (newWhat === 'client') {
+      switchTab('clients');
+      openClientModal(null);
+    }
+  }
+
+  function switchTab(name) {
+    els.tabs.forEach(function (t) { t.classList.toggle('is-active', t.getAttribute('data-tab') === name); });
+    els.panels.forEach(function (p) {
+      p.style.display = p.getAttribute('data-tab-panel') === name ? '' : 'none';
+    });
   }
 
   // ---------- Tabs ----------
