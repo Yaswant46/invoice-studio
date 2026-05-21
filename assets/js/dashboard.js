@@ -258,8 +258,9 @@
     } else if (act === 'edit') {
       location.href = 'editor.html?id=' + encodeURIComponent(id);
     } else if (act === 'convert') {
-      var newId = Convert.proformaToInvoice(id);
-      if (newId) location.href = 'editor.html?id=' + encodeURIComponent(newId);
+      Convert.proformaToInvoice(id).then(function (newId) {
+        if (newId) location.href = 'editor.html?id=' + encodeURIComponent(newId);
+      });
     } else if (act === 'duplicate') {
       duplicateDoc(id);
     } else if (act === 'delete') {

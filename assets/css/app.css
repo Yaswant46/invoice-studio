@@ -3,8 +3,13 @@
  */
 
 :root {
-  --app-navy: #0d3b66;
-  --app-navy-dark: #08294a;
+  /* Theme primary — overridden per body[data-theme]. Keep in sync with invoice.css. */
+  --theme-primary: #0d3b66;
+  --theme-primary-dark: #08294a;
+  --theme-accent: #0d3b66;
+
+  --app-navy: var(--theme-primary);
+  --app-navy-dark: var(--theme-primary-dark);
   --app-bg: #f5f7fa;
   --app-surface: #ffffff;
   --app-border: #d0d7de;
@@ -18,9 +23,19 @@
   --app-info: #2563a0;
   --app-purple: #6d3a93;
   --app-radius: 6px;
-  --app-shadow-sm: 0 1px 2px rgba(13, 59, 102, 0.06);
-  --app-shadow-md: 0 4px 14px rgba(13, 59, 102, 0.08);
+  --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --app-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
+
+/* ---------- Theme presets ----------
+ * Apply via <html data-theme="forest"> (handled by theme.js). Setting on
+ * :root ensures cascading custom-property variables update everywhere. */
+:root[data-theme="navy"]     { --theme-primary: #0d3b66; --theme-primary-dark: #08294a; --theme-accent: #0d3b66; }
+:root[data-theme="forest"]   { --theme-primary: #14532d; --theme-primary-dark: #0a3a1f; --theme-accent: #14532d; }
+:root[data-theme="burgundy"] { --theme-primary: #7c2d4c; --theme-primary-dark: #561d34; --theme-accent: #7c2d4c; }
+:root[data-theme="charcoal"] { --theme-primary: #1f2937; --theme-primary-dark: #111827; --theme-accent: #1f2937; }
+:root[data-theme="plum"]     { --theme-primary: #581c87; --theme-primary-dark: #3b0f5c; --theme-accent: #581c87; }
+:root[data-theme="teal"]     { --theme-primary: #0f766e; --theme-primary-dark: #0a514c; --theme-accent: #0f766e; }
 
 * { box-sizing: border-box; }
 

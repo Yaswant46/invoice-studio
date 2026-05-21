@@ -6,6 +6,7 @@
   <title>Preview — Invoice Studio</title>
   <link rel="stylesheet" href="assets/css/app.css">
   <link rel="stylesheet" href="assets/css/invoice.css">
+  <script src="assets/js/theme.js"></script>
   <style>
     /* Live mode (iframe inside editor): no chrome, no shadow. */
     body.live-mode .toolbar { display: none; }
@@ -131,8 +132,9 @@
       });
 
       document.getElementById('btn-convert').addEventListener('click', function () {
-        var newId = Convert.proformaToInvoice(docId);
-        if (newId) location.href = 'editor.html?id=' + encodeURIComponent(newId);
+        Convert.proformaToInvoice(docId).then(function (newId) {
+          if (newId) location.href = 'editor.html?id=' + encodeURIComponent(newId);
+        });
       });
 
       function toast(msg, kind) {

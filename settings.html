@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Settings — Invoice Studio</title>
   <link rel="stylesheet" href="assets/css/app.css">
+  <script src="assets/js/theme.js"></script>
 </head>
 <body>
 
@@ -50,6 +51,14 @@
 
     <!-- ========== DATA TAB ========== -->
     <section class="tab-panel" data-tab-panel="data" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card__header"><h3 class="card__title">Appearance</h3></div>
+        <div class="card__body">
+          <p style="margin:0 0 12px;font-size:13px;">Pick a theme. Applies to the app chrome and the invoice template.</p>
+          <div id="theme-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;"></div>
+        </div>
+      </div>
+
       <div class="card" style="margin-bottom:16px;">
         <div class="card__header"><h3 class="card__title">Storage</h3></div>
         <div class="card__body">

@@ -77,6 +77,7 @@
     renderProfiles();
     renderClients();
     renderStorageSize();
+    renderThemeGrid();
 
     // Auto-open modals when arrived via ?new=profile or ?new=client.
     var qs = new URLSearchParams(location.search);
@@ -357,6 +358,33 @@
     var bytes = Store.sizeBytes();
     var kb = (bytes / 1024).toFixed(1);
     els.storageSize.textContent = kb + ' KB';
+  }
+
+  function renderThemeGrid() {
+    var grid = document.getElementById('theme-grid');
+    if (!grid || !window.Theme) return;
+    var current = window.Theme.get();
+    grid.innerHTML = window.Theme.PRESETS.map(function (p) {
+      var active = p.id === current;
+      return ''
+        + '<button type="button" data-theme="' + p.id + '" class="theme-tile" style="'
+        +   'border:2px solid ' + (active ? p.swatch : 'var(--app-border)') + ';'
+        +   'border-radius:8px;padding:10px;background:#fff;cursor:pointer;text-align:left;'
+        +   'display:flex;align-items:center;gap:10px;'
+        +   (active ? 'box-shadow:0 2px 8px rgba(0,0,0,0.08);' : '')
+        + '">'
+        +   '<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:' + p.swatch + ';flex-shrink:0;"></span>'
+        +   '<span style="font-size:13px;font-weight:600;">' + p.name + '</span>'
+        +   (active ? '<span style="margin-left:auto;font-size:11px;color:var(--app-success);">✓</span>' : '')
+        + '</button>';
+    }).join('');
+    grid.querySelectorAll('[data-theme]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        window.Theme.set(btn.getAttribute('data-theme'));
+        renderThemeGrid();
+        toast('Theme updated');
+      });
+    });
   }
 
   function exportJson() {

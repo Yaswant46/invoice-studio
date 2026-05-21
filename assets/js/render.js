@@ -100,9 +100,12 @@
       + '</section>';
   }
 
-  function itemsTable(items, anyGst) {
-    var rows = (items || []).map(function (it, idx) {
+  function itemsTable(items, anyGst, anyHsn) {
+    var rows = (items || []).map(function (it) {
       var sub = global.Calc.lineSubtotal(it);
+      var hsnCell = anyHsn
+        ? '<td>' + esc(it.hsn || '') + '</td>'
+        : '';
       var gstCell = anyGst
         ? '<td class="num">' + (Number(it.gstPercent) || 0).toFixed(0) + '%</td>'
         : '';
@@ -114,6 +117,7 @@
               ? '<p class="inv-items__desc-sub">' + nl2br(it.subDescription) + '</p>'
               : '')
         +   '</td>'
+        +   hsnCell
         +   '<td class="num qty">' + esc(it.qty != null ? it.qty : '') + '</td>'
         +   '<td class="num">' + moneyCell(Number(it.unitPrice) || 0) + '</td>'
         +   gstCell
@@ -121,18 +125,21 @@
         + '</tr>';
     }).join('');
 
-    var gstHead = anyGst ? '<th class="num qty">GST</th>' : '';
+    var hsnHead = anyHsn ? '<th class="col-hsn">HSN/SAC</th>' : '';
+    var gstHead = anyGst ? '<th class="num col-gst">GST</th>' : '';
+    var colspan = 3 + (anyHsn ? 1 : 0) + (anyGst ? 1 : 0);
     return ''
       + '<section>'
       +   '<table class="inv-items">'
       +     '<thead><tr>'
       +       '<th>Description</th>'
+      +       hsnHead
       +       '<th class="num qty">Qty</th>'
-      +       '<th class="num">Rate</th>'
+      +       '<th class="num col-rate">Rate</th>'
       +       gstHead
-      +       '<th class="num">Amount</th>'
+      +       '<th class="num col-amount">Amount</th>'
       +     '</tr></thead>'
-      +     '<tbody>' + (rows || '<tr><td colspan="5">No items.</td></tr>') + '</tbody>'
+      +     '<tbody>' + (rows || '<tr><td colspan="' + colspan + '">No items.</td></tr>') + '</tbody>'
       +   '</table>'
       + '</section>';
   }
@@ -159,21 +166,9 @@
     return '<section class="inv-notes"><h3>Notes</h3>' + nl2br(text) + '</section>';
   }
 
-  function schedule(items) {
-    var cards = items.map(function (m) {
-      return ''
-        + '<div class="inv-schedule__card">'
-        +   '<div class="inv-schedule__percent">' + esc(m.percent) + '%</div>'
-        +   '<p class="inv-schedule__label">' + esc(m.label || '') + '</p>'
-        +   '<p class="inv-schedule__desc">' + esc(m.description || '') + '</p>'
-        + '</div>';
-    }).join('');
-    return ''
-      + '<section class="inv-schedule">'
-      +   '<h3>Payment Schedule</h3>'
-      +   '<div class="inv-schedule__grid">' + cards + '</div>'
-      + '</section>';
-  }
+  // Milestone cards section removed in v2 — tranches now live as line items.
+  // Kept stub for back-compat with any code that still references it.
+  function schedule() { return ''; }
 
   function bank(profile) {
     var b = profile.bank || {};
@@ -243,6 +238,7 @@
     var t = global.Calc.computeTotals(doc.items, doc.taxMode);
     var w = global.Calc.numberToWordsINR(t.grandTotal);
     var anyGst = global.Calc.hasAnyGst(doc.items) && doc.taxMode !== 'none';
+    var anyHsn = (doc.items || []).some(function (it) { return it && it.hsn && String(it.hsn).trim(); });
 
     var isProforma = doc.type === 'proforma';
     var title = isProforma ? 'Proforma Invoice' : 'Tax Invoice';
@@ -253,12 +249,10 @@
       +   header(profile, title, sublabel)
       +   meta(doc, profile)
       +   billTo(client)
-      +   itemsTable(doc.items, anyGst)
+      +   itemsTable(doc.items, anyGst, anyHsn)
       +   totals(t, doc.taxMode)
       +   words(w)
       +   (doc.notes ? notesBlock(doc.notes) : '')
-      +   (doc.showPaymentSchedule && doc.paymentSchedule && doc.paymentSchedule.length
-            ? schedule(doc.paymentSchedule) : '')
       +   (doc.showBankDetails ? bank(profile) : '')
       +   declaration(isProforma)
       +   sigBlock(profile, doc)

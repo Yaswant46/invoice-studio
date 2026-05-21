@@ -38,12 +38,10 @@
     cpAttn:           document.getElementById('cp-attn'),
     itemsBody:        document.getElementById('items-body'),
     btnAddItem:       document.getElementById('btn-add-item'),
+    bulkGst:          document.getElementById('bulk-gst'),
+    btnBulkGstApply:  document.getElementById('btn-bulk-gst-apply'),
     taxToggle:        document.getElementById('taxmode-toggle'),
     taxHint:          document.getElementById('taxmode-hint'),
-    showSchedule:     document.getElementById('f-show-schedule'),
-    scheduleBody:     document.getElementById('schedule-body'),
-    btnAddMilestone:  document.getElementById('btn-add-milestone'),
-    scheduleSum:      document.getElementById('schedule-sum'),
     showBank:         document.getElementById('f-show-bank'),
     notes:            document.getElementById('f-notes'),
     tSubtotal:        document.getElementById('t-subtotal'),
@@ -129,25 +127,16 @@
       issueDate: today,
       offerRef: '',
       clientRef: '',
-      items: [{ description: '', subDescription: '', qty: 1, unitPrice: 0, gstPercent: 0 }],
+      items: [{ description: '', subDescription: '', hsn: '', qty: 1, unitPrice: 0, gstPercent: 0 }],
       taxMode: 'none',
-      paymentSchedule: type === 'proforma' ? defaultSchedule() : [],
+      paymentSchedule: [],         // deprecated — kept for back-compat
       showBankDetails: type === 'invoice',
-      showPaymentSchedule: type === 'proforma',
-      notes: '',
+      showPaymentSchedule: false,  // deprecated
+      notes: type === 'proforma' ? 'Payment terms: see breakdown above. Each tranche is invoiced separately on completion of its milestone.' : '',
       status: 'draft',
       convertedFromId: null,
       convertedToId: null
     };
-  }
-
-  function defaultSchedule() {
-    return [
-      { percent: 20, label: 'Advance',         description: 'On release of the Purchase / Service Order.' },
-      { percent: 20, label: 'Phase 1',         description: 'On conclusion of the 1st meeting and site visit.' },
-      { percent: 40, label: 'Phase 2',         description: 'On submission of 2–3 tentative layout options and the 2nd meeting.' },
-      { percent: 20, label: 'Phase 3 — Final', description: 'On submission of the final recommended AutoCAD layout and final area documents.' }
-    ];
   }
 
   // ---------- Populate selects ----------
@@ -179,7 +168,6 @@
     paintClientPreview();
     paintItems();
     paintTaxToggle();
-    paintScheduleSection();
     paintDisplayOptions();
     paintTotals();
     schedulePreviewPush();
@@ -226,6 +214,7 @@
         +     '<input class="item-desc" placeholder="Description" value="' + escapeAttr(it.description || '') + '">'
         +     '<textarea class="item-subdesc" placeholder="Sub-description (optional)">' + escapeText(it.subDescription || '') + '</textarea>'
         +   '</td>'
+        +   '<td><input class="item-hsn" placeholder="HSN/SAC" value="' + escapeAttr(it.hsn || '') + '"></td>'
         +   '<td><input type="number" class="num item-qty" min="0" step="any" value="' + Number(it.qty || 0) + '"></td>'
         +   '<td><input type="number" class="num item-price" min="0" step="any" value="' + Number(it.unitPrice || 0) + '"></td>'
         +   '<td><input type="number" class="num item-gst" min="0" max="100" step="any" value="' + Number(it.gstPercent || 0) + '"></td>'
@@ -246,27 +235,6 @@
     var suggested = Convert.suggestedTaxMode(profile, client);
     els.taxHint.textContent = 'Suggested based on state codes: ' + suggested
       + (doc.taxMode === 'none' ? ' · Tip: Proforma usually uses None.' : '');
-  }
-
-  function paintScheduleSection() {
-    els.showSchedule.checked = !!doc.showPaymentSchedule;
-    var ms = doc.paymentSchedule || [];
-    els.scheduleBody.innerHTML = ms.map(function (m, idx) {
-      return ''
-        + '<tr data-idx="' + idx + '">'
-        +   '<td><input type="number" class="num ms-pct" min="0" max="100" step="any" value="' + Number(m.percent || 0) + '"></td>'
-        +   '<td><input class="ms-label" value="' + escapeAttr(m.label || '') + '"></td>'
-        +   '<td><input class="ms-desc" value="' + escapeAttr(m.description || '') + '"></td>'
-        +   '<td class="actions"><button type="button" class="btn btn--ghost btn--sm btn-del-milestone" title="Remove">✕</button></td>'
-        + '</tr>';
-    }).join('');
-    paintScheduleSum();
-  }
-
-  function paintScheduleSum() {
-    var sum = (doc.paymentSchedule || []).reduce(function (a, m) { return a + (Number(m.percent) || 0); }, 0);
-    els.scheduleSum.textContent = 'Sum: ' + sum + '%';
-    els.scheduleSum.style.color = sum === 100 ? 'var(--app-success)' : 'var(--app-warning)';
   }
 
   function paintDisplayOptions() {
@@ -349,7 +317,7 @@
 
     // Items
     els.btnAddItem.addEventListener('click', function () {
-      doc.items.push({ description: '', subDescription: '', qty: 1, unitPrice: 0, gstPercent: 0 });
+      doc.items.push({ description: '', subDescription: '', hsn: '', qty: 1, unitPrice: 0, gstPercent: 0 });
       paintItems(); paintTotals(); schedulePreviewPush();
     });
     els.itemsBody.addEventListener('input', function (e) {
@@ -360,11 +328,12 @@
       if (!it) return;
       if (e.target.classList.contains('item-desc'))    it.description = e.target.value;
       if (e.target.classList.contains('item-subdesc')) it.subDescription = e.target.value;
+      if (e.target.classList.contains('item-hsn'))     it.hsn = e.target.value;
       if (e.target.classList.contains('item-qty'))     it.qty = Number(e.target.value) || 0;
       if (e.target.classList.contains('item-price'))   it.unitPrice = Number(e.target.value) || 0;
       if (e.target.classList.contains('item-gst'))     it.gstPercent = Number(e.target.value) || 0;
       // Update line total inline without re-painting all inputs (preserves focus)
-      var lineCell = tr.querySelector('td:nth-child(5)');
+      var lineCell = tr.querySelector('td:nth-child(6)');
       if (lineCell) lineCell.textContent = Calc.formatINR(Calc.lineSubtotal(it));
       paintTotals(); schedulePreviewPush();
     });
@@ -373,45 +342,27 @@
         var tr = e.target.closest('tr');
         var idx = Number(tr.getAttribute('data-idx'));
         doc.items.splice(idx, 1);
-        if (!doc.items.length) doc.items.push({ description: '', subDescription: '', qty: 1, unitPrice: 0, gstPercent: 0 });
+        if (!doc.items.length) doc.items.push({ description: '', subDescription: '', hsn: '', qty: 1, unitPrice: 0, gstPercent: 0 });
         paintItems(); paintTotals(); schedulePreviewPush();
       }
+    });
+
+    // Bulk-apply GST
+    els.btnBulkGstApply.addEventListener('click', function () {
+      var v = Number(els.bulkGst.value);
+      if (isNaN(v) || v < 0 || v > 100) {
+        alert('Enter a GST % between 0 and 100.');
+        return;
+      }
+      doc.items.forEach(function (it) { it.gstPercent = v; });
+      paintItems(); paintTotals(); schedulePreviewPush();
+      toast('GST set to ' + v + '% on all ' + doc.items.length + ' item(s)');
     });
 
     // Tax mode
     els.taxToggle.addEventListener('change', function (e) {
       var v = e.target.value;
       if (v) { doc.taxMode = v; paintTaxToggle(); paintTotals(); schedulePreviewPush(); }
-    });
-
-    // Schedule
-    els.showSchedule.addEventListener('change', function () {
-      doc.showPaymentSchedule = els.showSchedule.checked;
-      schedulePreviewPush();
-    });
-    els.btnAddMilestone.addEventListener('click', function () {
-      if (!doc.paymentSchedule) doc.paymentSchedule = [];
-      doc.paymentSchedule.push({ percent: 0, label: '', description: '' });
-      paintScheduleSection(); schedulePreviewPush();
-    });
-    els.scheduleBody.addEventListener('input', function (e) {
-      var tr = e.target.closest('tr');
-      if (!tr) return;
-      var idx = Number(tr.getAttribute('data-idx'));
-      var m = doc.paymentSchedule[idx];
-      if (!m) return;
-      if (e.target.classList.contains('ms-pct'))   m.percent = Number(e.target.value) || 0;
-      if (e.target.classList.contains('ms-label')) m.label = e.target.value;
-      if (e.target.classList.contains('ms-desc'))  m.description = e.target.value;
-      paintScheduleSum(); schedulePreviewPush();
-    });
-    els.scheduleBody.addEventListener('click', function (e) {
-      if (e.target.closest('.btn-del-milestone')) {
-        var tr = e.target.closest('tr');
-        var idx = Number(tr.getAttribute('data-idx'));
-        doc.paymentSchedule.splice(idx, 1);
-        paintScheduleSection(); schedulePreviewPush();
-      }
     });
 
     // Display options
